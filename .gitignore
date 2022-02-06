@@ -1,0 +1,7 @@
+node_modules
+.vscode-test/
+*.vsix
+output
+src/**/*.js
+dist
+.spago
