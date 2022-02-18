@@ -9,7 +9,7 @@ const plugins = [];
 module.exports = {
     devtool: 'eval-source-map',
 
-    entry: './src/Main.purs',
+    entry: './src/extension.js',
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'extension.js',

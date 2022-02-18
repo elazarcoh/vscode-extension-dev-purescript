@@ -34,7 +34,10 @@ gulp.task('webpacker', function () {
 });
 
 gulp.task('watch', function () {
-    gulp.watch('./src/**/*.{purs,ts}', gulp.series(['typescript', 'webpacker']));
+    gulp.watch(
+        './src/**/*.{purs,ts}',
+        gulp.series(['typescript', 'webpacker'])
+    );
 });
 
 gulp.task('default', gulp.series(['typescript', 'webpacker', 'watch']));
