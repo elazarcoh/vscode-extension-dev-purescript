@@ -1,56 +1,61 @@
 module VSCode.TreeView
-  ( TreeItemCollapsibleState(..)
+  ( Collapsed(..)
+  , Expanded(..)
+  , None(..)
+  , TreeItem
+  , TreeItemCollapsibleState(..)
+  , TreeNode(..)
   , TreeView(..)
-  , collapsibleState
-  , createTreeItem
-  , label
+  , collapsed
+  , expanded
+  , none
   , registerTreeView
   , registerTreeViewAff
-  )
-  where
+  ) where
 
 import Prelude
 
 import Control.Promise (Promise, fromAff)
-import Data.Functor.Contravariant (cmap)
 import Data.Maybe (Maybe(..))
-import Data.Options (Option, Options, opt, options)
+import Data.Undefined.NoProblem (Opt)
 import Data.UndefinedOr (UndefinedOr, fromUndefined)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Uncurried (EffectFn1, mkEffectFn1)
-import Foreign (Foreign)
+import Literals (IntLit, intLit)
 import Untagged.Union (type (|+|), asOneOf)
+import VSCode.Commands (Command)
 import VSCode.Common (disposeImpl)
-import VSCode.Types (class Disposable, TreeNode(..), TreeItem)
+import VSCode.Types (class Disposable)
 
 data TreeView
 
 instance disposeTreeView :: Disposable TreeView where
   dispose = disposeImpl
 
-label :: Option TreeItem String
-label = opt "label"
+type Collapsed = IntLit "1"
+type Expanded = IntLit "2"
+type None = IntLit "0"
 
-data TreeItemCollapsibleState
-  = Collapsed
-  | Expanded
-  | None
+collapsed :: TreeItemCollapsibleState
+collapsed = asOneOf (intLit :: IntLit "1")
 
-treeItemCollapsibleStateToVSCodeEnum :: TreeItemCollapsibleState -> Int
-treeItemCollapsibleStateToVSCodeEnum Collapsed = 1
+expanded :: TreeItemCollapsibleState
+expanded = asOneOf (intLit :: IntLit "2")
 
-treeItemCollapsibleStateToVSCodeEnum Expanded = 2
+none :: TreeItemCollapsibleState
+none = asOneOf (intLit :: IntLit "0")
 
-treeItemCollapsibleStateToVSCodeEnum None = 0
+type TreeItemCollapsibleState = Collapsed |+| Expanded |+| None
 
-collapsibleState :: Option TreeItem TreeItemCollapsibleState
-collapsibleState = cmap treeItemCollapsibleStateToVSCodeEnum (opt "collapsibleState")
+-- TreeView Types
+type TreeItem =
+  { label :: Opt String
+  , command :: Opt Command
+  , collapsibleState :: Opt TreeItemCollapsibleState
+  }
 
-foreign import createTreeItemImpl :: Foreign -> TreeItem
-
-createTreeItem :: Options TreeItem -> TreeItem
-createTreeItem opts = createTreeItemImpl (options opts)
+data TreeNode = Root | Child TreeItem
 
 type ForeignTreeItemGetter = (UndefinedOr TreeItem -> Array TreeItem)
   |+| (EffectFn1 (UndefinedOr TreeItem) (Promise (Array TreeItem)))

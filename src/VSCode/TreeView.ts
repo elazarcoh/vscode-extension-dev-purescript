@@ -1,6 +1,7 @@
 import { identity } from 'lodash';
 import * as vscode from 'vscode';
-import { TreeItem, TreeItemCollapsibleState } from 'vscode';
+import { TreeItem } from 'vscode';
+import { traced } from './utils';
 
 
 export const _registerTreeView = (id: string) =>
@@ -15,14 +16,3 @@ export const _registerTreeView = (id: string) =>
             return disposable;
         };
     };
-export const createTreeItemImpl = (
-    { label, description, collapsibleState }: {
-        label: string,
-        description?: string,
-        collapsibleState: TreeItemCollapsibleState
-    }) => {
-    const item = new TreeItem(label);
-    item.description = description;
-    item.collapsibleState = collapsibleState;
-    return item
-}

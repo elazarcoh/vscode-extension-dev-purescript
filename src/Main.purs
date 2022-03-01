@@ -1,18 +1,16 @@
 module Main
   ( activateImpl
   , deactivateImpl
-  , treeViewAff
-  )
-  where
+  ) where
 
 import Prelude
 
 import Data.Array (filter)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.Options ((:=))
 import Data.Tuple (Tuple(..), uncurry)
-import Data.UndefinedOr (fromUndefined)
+import Data.Undefined.NoProblem (toMaybe)
+import Data.Undefined.NoProblem.Open as Open
 import Effect (Effect)
 import Effect.Aff (Aff, attempt, launchAff_)
 import Effect.Class (liftEffect)
@@ -22,8 +20,8 @@ import Node.FS.Aff as FSA
 import Node.Path (FilePath)
 import VSCode.Commands (getCommands, registerCommand)
 import VSCode.Common (subscribeDisposable)
-import VSCode.TreeView (TreeItemCollapsibleState(..), collapsibleState, createTreeItem, label, registerTreeView)
-import VSCode.Types (ExtensionContext, TreeNode(..), TreeItem)
+import VSCode.TreeView (TreeItem, TreeNode(..), collapsed, expanded, registerTreeView, registerTreeViewAff)
+import VSCode.Types (ExtensionContext)
 import VSCode.Window (showInformationMessage)
 
 fooMessageCommand ∷ ExtensionContext -> Effect Unit
@@ -31,27 +29,21 @@ fooMessageCommand ctx = do
   disposable <- registerCommand "test-purs.helloWorld" (\_ -> showInformationMessage "foo")
   subscribeDisposable ctx disposable
 
+treeViewChildren ∷ TreeNode → Array TreeItem
+treeViewChildren Root =
+  [ Open.coerce { label: "Foo", collapsibleState: collapsed }
+  , Open.coerce { label: "Foo2", collapsibleState: collapsed }
+  ]
+treeViewChildren (Child x) = case toMaybe $ _.label x of
+  Just "Foo" → [ Open.coerce { label: "Bar", collapsibleState: expanded } ]
+  Just "Bar" → mempty
+  _ -> mempty
+
 fileToItem :: FilePath -> TreeItem
-fileToItem filepath = createTreeItem $ (label := filepath) <> (collapsibleState := Collapsed)
+fileToItem filepath = Open.coerce { label: filepath, collapsibleState: collapsed }
 
 affChild ∷ Aff (Array TreeItem)
 affChild = map (map fileToItem) (FSA.readdir ".")
-
-treeViewChildren ∷ TreeNode → Array TreeItem
-treeViewChildren Root =
-  [ createTreeItem $ mempty
-      <> label := "Foo"
-      <> collapsibleState := Collapsed
-  , createTreeItem $ mempty
-      <> label := "Foo2"
-      <> collapsibleState := Collapsed
-  ]
-treeViewChildren (Child x) = case fromUndefined $ _.label x of
-  Just "Foo" → pure $ createTreeItem $ mempty
-    <> label := "Bar"
-    <> collapsibleState := Collapsed
-  Just "Bar" → mempty
-  _ -> mempty
 
 treeView ∷ Tuple String (TreeNode → Array TreeItem)
 treeView = Tuple "nodeDependencies" treeViewChildren
