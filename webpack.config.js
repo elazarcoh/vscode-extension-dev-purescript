@@ -8,6 +8,7 @@ const plugins = [];
 
 module.exports = {
     devtool: 'eval-source-map',
+    target: "node",
 
     entry: './src/extension.js',
     output: {

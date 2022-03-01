@@ -1,3 +1,6 @@
 {
-    "npm.exclude": "**/.spago/**"
+    "npm.exclude": "**/.spago/**",
+    "purescript.censorWarnings": [
+        "UnusedFFIImplementations",
+    ]
 }

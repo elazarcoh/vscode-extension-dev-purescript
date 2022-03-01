@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import {curryThunk } from './utils';
+import { curryThunk } from './utils';
 
 export const _registerCommand = c => fn => () => vscode.commands.registerCommand(c, fn);
 // export const _executeCommand = curryThunk(vscode.commands.executeCommand);

@@ -4,7 +4,7 @@ const webpack = require('webpack-stream');
 const ts = require('gulp-typescript');
 
 gulp.task('typescript', function () {
-    var tsProject = ts.createProject({});
+    var tsProject = ts.createProject("tsconfig.json");
     return gulp
         .src('src/**/*.ts')
         .pipe(tsProject())
@@ -34,10 +34,8 @@ gulp.task('webpacker', function () {
 });
 
 gulp.task('watch', function () {
-    gulp.watch(
-        './src/**/*.{purs,ts}',
-        gulp.series(['typescript', 'webpacker'])
-    );
+    gulp.watch('./src/**/*.purs', gulp.series('webpacker'));
+    gulp.watch('./src/**/*.ts', gulp.series(['typescript', 'webpacker']));
 });
 
 gulp.task('default', gulp.series(['typescript', 'webpacker', 'watch']));

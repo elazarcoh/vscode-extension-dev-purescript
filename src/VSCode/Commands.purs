@@ -11,10 +11,10 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Foreign (Foreign)
-import VSCode.Common (subscribeDisposable, disposeImpl)
-import VSCode.Types (class Disposable, ExtensionContext)
+import VSCode.Common (disposeImpl)
+import VSCode.Types (class Disposable)
 
-data Command = Command
+data Command
 
 instance disposeCommand :: Disposable Command where
   dispose = disposeImpl

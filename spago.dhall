@@ -18,8 +18,14 @@ to generate this file without the comments in this block.
   , "console"
   , "effect"
   , "foreign"
+  , "node-fs"
+  , "node-fs-aff"
+  , "options"
   , "prelude"
   , "psci-support"
+  , "undefined-is-not-a-problem"
+  , "undefined-or"
+  , "untagged-union"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
