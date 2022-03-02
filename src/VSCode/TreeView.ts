@@ -1,7 +1,6 @@
 import { identity } from 'lodash';
 import * as vscode from 'vscode';
 import { TreeItem } from 'vscode';
-import { traced } from './utils';
 
 
 export const _registerTreeView = (id: string) =>

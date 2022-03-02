@@ -20,7 +20,7 @@ import Node.FS.Aff as FSA
 import Node.Path (FilePath)
 import VSCode.Commands (getCommands, registerCommand)
 import VSCode.Common (subscribeDisposable)
-import VSCode.TreeView (TreeItem, TreeNode(..), collapsed, expanded, registerTreeView, registerTreeViewAff)
+import VSCode.TreeView (TreeItem(..), TreeItemCollapsibleState(..), TreeNode(..), registerTreeView, registerTreeViewAff)
 import VSCode.Types (ExtensionContext)
 import VSCode.Window (showInformationMessage)
 
@@ -31,16 +31,16 @@ fooMessageCommand ctx = do
 
 treeViewChildren ∷ TreeNode → Array TreeItem
 treeViewChildren Root =
-  [ Open.coerce { label: "Foo", collapsibleState: collapsed }
-  , Open.coerce { label: "Foo2", collapsibleState: collapsed }
+  [ TreeItem $ Open.coerce { label: "Foo", collapsibleState: Expanded }
+  , TreeItem $ Open.coerce { label: "Foo2", collapsibleState: Collapsed }
   ]
-treeViewChildren (Child x) = case toMaybe $ _.label x of
-  Just "Foo" → [ Open.coerce { label: "Bar", collapsibleState: expanded } ]
+treeViewChildren (Child (TreeItem parent)) = case toMaybe $ parent.label of
+  Just "Foo" → [ TreeItem $ Open.coerce { label: "Bar", collapsibleState: None } ]
   Just "Bar" → mempty
   _ -> mempty
 
 fileToItem :: FilePath -> TreeItem
-fileToItem filepath = Open.coerce { label: filepath, collapsibleState: collapsed }
+fileToItem filepath = TreeItem $ Open.coerce { label: filepath, collapsibleState: Collapsed }
 
 affChild ∷ Aff (Array TreeItem)
 affChild = map (map fileToItem) (FSA.readdir ".")
@@ -74,8 +74,8 @@ activateImpl ctx =
         commands <- getCommands
         Console.log (show $ filter (eq "test-purs.helloWorld") commands)
         Console.log "Registering tree view..."
-        liftEffect $ uncurry registerTreeView treeView >>= subscribeDisposable ctx
-        -- liftEffect $ uncurry registerTreeViewAff treeViewAff >>= subscribeDisposable ctx
+        -- liftEffect $ uncurry registerTreeView treeView >>= subscribeDisposable ctx
+        liftEffect $ uncurry registerTreeViewAff treeViewAff >>= subscribeDisposable ctx
         Console.log "TreeView registered"
         -- _ <- printDir
         -- x <- affChild

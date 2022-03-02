@@ -1,8 +1,11 @@
-module VSCode.Types where
+module VSCode.Types
+  ( ExtensionContext
+  , Uri
+  , class Disposable
+  , dispose
+  ) where
 
 import Prelude
-
-import Data.Undefined.NoProblem (Opt)
 
 class Disposable a where
   dispose :: a -> Unit
