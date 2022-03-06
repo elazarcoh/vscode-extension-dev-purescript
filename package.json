@@ -31,7 +31,7 @@
 	},
 	"scripts": {
 		"lint": "eslint .",
-		"build": "spago build",
+		"build": "tsc && spago build",
 		"tsc-watch": "tsc --watch",
 		"purs-watch": "spago build --watch --clear-screen",
 		"watch": "gulp",
