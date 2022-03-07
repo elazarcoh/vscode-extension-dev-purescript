@@ -1,4 +1,7 @@
 {
+    "files.watcherExclude": {
+        "**/.spago/**": true
+    },
     "npm.exclude": "**/.spago/**",
     "purescript.censorWarnings": [
         "UnusedFFIImplementations",

@@ -2,9 +2,13 @@
 const gulp = require('gulp');
 const webpack = require('webpack-stream');
 const ts = require('gulp-typescript');
+const shell = require('gulp-shell');
 
+const jsFiles = ['src/extension.js', 'src/utils.js'];
+
+gulp.task('purescript', shell.task('spago build'));
 gulp.task('typescript', function () {
-    var tsProject = ts.createProject("tsconfig.json");
+    var tsProject = ts.createProject('tsconfig.json');
     return gulp
         .src('src/**/*.ts')
         .pipe(tsProject())
@@ -13,6 +17,9 @@ gulp.task('typescript', function () {
                 return file.base;
             })
         );
+});
+gulp.task('copy-js', function () {
+    return gulp.src(jsFiles).pipe(gulp.dest('output/'));
 });
 
 gulp.task('webpacker', function () {
@@ -33,9 +40,15 @@ gulp.task('webpacker', function () {
         .pipe(gulp.dest('dist/'));
 });
 
+gulp.task('build-dev', gulp.series('typescript', 'purescript'));
+
 gulp.task('watch', function () {
-    gulp.watch('./src/**/*.purs', gulp.series('webpacker'));
-    gulp.watch('./src/**/*.ts', gulp.series(['typescript', 'webpacker']));
+    gulp.watch('./src/**/*.purs', gulp.series('purescript'));
+    gulp.watch('./src/**/*.ts', gulp.series(['typescript', 'purescript']));
+    gulp.watch(jsFiles, gulp.series('copy-js'));
 });
 
-gulp.task('default', gulp.series(['typescript', 'webpacker', 'watch']));
+gulp.task(
+    'default',
+    gulp.series(['typescript', 'copy-js', 'purescript', 'watch'])
+);
