@@ -1,14 +1,15 @@
 module Main
   ( activateImpl
   , deactivateImpl
-  ) where
+  , treeView
+  )
+  where
 
 import Prelude
 
 import Data.Array (filter)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..), uncurry)
 import Data.Undefined.NoProblem (toMaybe)
 import Data.Undefined.NoProblem.Open as Open
 import Effect (Effect)
@@ -17,45 +18,63 @@ import Effect.Class (liftEffect)
 import Effect.Class.Console as Console
 import Effect.Exception.Unsafe (unsafeThrowException)
 import Node.FS.Aff as FSA
-import Node.Path (FilePath)
+import Node.FS.Stats as FS
+import Node.Path (FilePath, concat)
 import VSCode.Commands (getCommands, registerCommand)
 import VSCode.Common (subscribeDisposable)
-import VSCode.TreeView (TreeItem(..), TreeItemCollapsibleState(..), TreeNode(..), registerTreeView, registerTreeViewAff)
+import VSCode.TreeView (TreeElement(..), TreeItem(..), TreeItemCollapsibleState(..), TreeView, register)
 import VSCode.Types (ExtensionContext)
 import VSCode.Window (showInformationMessage)
 
-fooMessageCommand ∷ ExtensionContext -> Effect Unit
+fooMessageCommand :: ExtensionContext -> Effect Unit
 fooMessageCommand ctx = do
   disposable <- registerCommand "test-purs.helloWorld" (\_ -> showInformationMessage "foo")
   subscribeDisposable ctx disposable
 
-treeViewChildren ∷ TreeNode → Array TreeItem
+
+treeViewChildren :: TreeElement TreeItem -> Array TreeItem
 treeViewChildren Root =
   [ TreeItem $ Open.coerce { label: "Foo", collapsibleState: Expanded }
   , TreeItem $ Open.coerce { label: "Foo2", collapsibleState: Collapsed }
   ]
 treeViewChildren (Child (TreeItem parent)) = case toMaybe $ parent.label of
-  Just "Foo" → [ TreeItem $ Open.coerce { label: "Bar", collapsibleState: None } ]
-  Just "Bar" → mempty
+  Just "Foo" -> [ TreeItem $ Open.coerce { label: "Bar", collapsibleState: None } ]
+  Just "Bar" -> mempty
   _ -> mempty
 
-fileToItem :: FilePath -> TreeItem
-fileToItem filepath = TreeItem $ Open.coerce { label: filepath, collapsibleState: Collapsed }
+treeView :: { children :: TreeElement TreeItem -> Array TreeItem, resolve :: TreeItem -> TreeItem }
+treeView = { children: treeViewChildren, resolve: identity }
 
-affChild ∷ Aff (Array TreeItem)
-affChild = map (map fileToItem) (FSA.readdir ".")
-
-treeView ∷ Tuple String (TreeNode → Array TreeItem)
-treeView = Tuple "nodeDependencies" treeViewChildren
-
-treeViewAff ∷ Tuple String (TreeNode → Aff (Array TreeItem))
-treeViewAff = Tuple "nodeDependencies" children
+type File = { directory :: FilePath, name :: String }
+treeViewAff :: { children :: TreeElement File -> Aff (Array File), resolve :: File -> Aff TreeItem }
+treeViewAff = { children: children, resolve: fileToItem }
   where
-  children ∷ TreeNode → Aff (Array TreeItem)
-  children Root = affChild
-  children (Child _) = pure mempty
+  root = "C:/elazar/private/vscode_extenstions/test-purs"
 
-errorLogged ∷ forall a. Aff a → Aff a
+  fullPath :: File -> FilePath
+  fullPath { directory, name } = concat [directory, name]
+  
+  readdir :: FilePath -> Aff (Array File)
+  readdir dir = (map <<< map) (\name -> { directory: dir, name: name }) $ FSA.readdir dir 
+
+  children :: TreeElement File -> Aff (Array File)
+  children Root = readdir root
+  children (Child file) = do
+    let fp = fullPath file
+    stat <- FSA.stat fp
+    if FS.isDirectory stat
+      then readdir fp
+      else pure mempty
+
+  fileToItem :: File -> Aff TreeItem
+  fileToItem file = do
+    let fp = fullPath file
+    stat ← FSA.stat fp
+    if FS.isDirectory stat
+      then pure <<< TreeItem $ Open.coerce { label: file.name, collapsibleState: Collapsed }
+      else pure <<< TreeItem $ Open.coerce { label: file.name, collapsibleState: None }
+
+errorLogged :: forall a. Aff a -> Aff a
 errorLogged aff = do
   x <- attempt aff
   case x of
@@ -74,11 +93,9 @@ activateImpl ctx =
         commands <- getCommands
         Console.log (show $ filter (eq "test-purs.helloWorld") commands)
         Console.log "Registering tree view..."
-        -- liftEffect $ uncurry registerTreeView treeView >>= subscribeDisposable ctx
-        liftEffect $ uncurry registerTreeViewAff treeViewAff >>= subscribeDisposable ctx
+        -- liftEffect $ (register treeView "nodeDependencies" :: Effect (TreeView Identity TreeItem)) >>= subscribeDisposable ctx
+        liftEffect $ (register treeViewAff "nodeDependencies" :: Effect (TreeView Aff File)) >>= subscribeDisposable ctx
         Console.log "TreeView registered"
-        -- _ <- printDir
-        -- x <- affChild
         -- Console.log (show x)
         Console.log "printed"
 

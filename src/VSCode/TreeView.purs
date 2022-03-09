@@ -1,15 +1,16 @@
 module VSCode.TreeView
-  ( TreeItem(..)
+  ( TreeElement(..)
+  , TreeItem(..)
   , TreeItemCollapsibleState(..)
-  , TreeNode(..)
   , TreeView(..)
-  , registerTreeView
-  , registerTreeViewAff
+  , class Registerable
+  , register
   ) where
 
 import Prelude
 
 import Control.Promise (Promise, fromAff)
+import Data.Identity (Identity)
 import Data.Maybe (Maybe(..))
 import Data.Undefined.NoProblem (Opt, pseudoMap)
 import Data.UndefinedOr (UndefinedOr, fromUndefined)
@@ -20,9 +21,10 @@ import Untagged.Union (type (|+|), asOneOf)
 import VSCode.Common (class VSCConvertible, disposeImpl, fromVSC, toVSC)
 import VSCode.Types (class Disposable)
 
-data TreeView
+data TreeView :: forall k. (k -> Type) -> k -> Type
+data TreeView f a
 
-instance disposeTreeView :: Disposable TreeView where
+instance disposeTreeView :: Disposable (TreeView f a) where
   dispose = disposeImpl
 
 data TreeItemCollapsibleState = Collapsed | Expanded | None
@@ -39,8 +41,6 @@ instance vscodeConvertibleTreeItemCollapsibleState :: VSCConvertible TreeItemCol
     0 -> None
     _ -> None
 
--- TreeView Types
-
 newtype TreeItem = TreeItem
   { label :: Opt String
   , collapsibleState :: Opt TreeItemCollapsibleState
@@ -55,30 +55,33 @@ instance treeItemVSCodeConvertible :: VSCConvertible TreeItem VSCTreeItem where
   toVSC (TreeItem c) = VSCTreeItem $ c { collapsibleState = pseudoMap toVSC c.collapsibleState }
   fromVSC (VSCTreeItem c) = TreeItem $ c { collapsibleState = pseudoMap fromVSC c.collapsibleState }
 
-data TreeNode = Root | Child TreeItem
+data TreeElement a = Root | Child a
 
-type ForeignTreeItemGetter = (UndefinedOr TreeItem -> Array VSCTreeItem)
-  |+| (EffectFn1 (UndefinedOr TreeItem) (Promise (Array VSCTreeItem)))
+type ForeignTreeElementGetter a = (UndefinedOr a -> Array a)
+  |+| (EffectFn1 (UndefinedOr a) (Promise (Array a)))
 
-foreign import _registerTreeView :: String -> ForeignTreeItemGetter -> Effect TreeView
+type ForeignTreeElementToVSCTreeItem a = (a -> VSCTreeItem)
+  |+| (EffectFn1 a (Promise VSCTreeItem))
 
-toTreeNode :: UndefinedOr TreeItem -> TreeNode
-toTreeNode u = case fromUndefined u of
+foreign import _registerTreeView :: forall f a. String -> ForeignTreeElementGetter a -> ForeignTreeElementToVSCTreeItem a -> Effect (TreeView f a)
+
+toTreeElement :: forall a. UndefinedOr a -> TreeElement a
+toTreeElement u = case fromUndefined u of
   Nothing -> Root
-  Just x -> (Child x)
+  Just x -> Child x
 
-registerTreeViewAff :: String -> (TreeNode -> Aff (Array TreeItem)) -> Effect TreeView
-registerTreeViewAff id children = _registerTreeView id $ asOneOf (mkEffectFn1 asPromiseEff)
-  where
-  asPromiseEff :: UndefinedOr TreeItem -> Effect (Promise (Array VSCTreeItem))
-  asPromiseEff item = fromAff $ (vscodeChildren <<< toTreeNode) item
+class (Disposable t) <= Registerable t requirements | t -> requirements where
+  register :: requirements -> String -> Effect t
 
-  vscodeChildren :: TreeNode -> Aff (Array VSCTreeItem)
-  vscodeChildren = (map <<< map <<< map) toVSC children
-
-registerTreeView :: String -> (TreeNode -> Array TreeItem) -> Effect TreeView
-registerTreeView id children = _registerTreeView id $ asOneOf (vscodeChildren <<< toTreeNode)
-  where
-  vscodeChildren :: TreeNode -> Array VSCTreeItem
-  vscodeChildren = (map <<< map) toVSC children
-
+instance registerableTreeView :: Registerable (TreeView Identity a) { children :: TreeElement a -> Array a, resolve :: a -> TreeItem } where
+  register { children, resolve } id = _registerTreeView id (asOneOf $ children <<< toTreeElement) (asOneOf resolveAsVSC)
+    where
+      resolveAsVSC :: a -> VSCTreeItem
+      resolveAsVSC = toVSC <<< resolve
+else instance registerableTreeViewAff :: Registerable (TreeView Aff a) { children :: TreeElement a -> Aff (Array a), resolve :: a -> Aff TreeItem } where
+  register { children, resolve } id = _registerTreeView id (asOneOf $ mkEffectFn1 childredPromised) (asOneOf $ mkEffectFn1 resolvePromised)
+    where
+    childredPromised :: UndefinedOr a -> Effect (Promise (Array a))
+    childredPromised i = fromAff $ (children <<< toTreeElement) i
+    resolvePromised :: a -> Effect (Promise VSCTreeItem)
+    resolvePromised i = fromAff $ (map toVSC $ resolve i)
