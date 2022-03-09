@@ -3,8 +3,6 @@ module VSCode.TreeView
   , TreeItem(..)
   , TreeItemCollapsibleState(..)
   , TreeView(..)
-  , class Registerable
-  , register
   ) where
 
 import Prelude
@@ -19,7 +17,7 @@ import Effect.Aff (Aff)
 import Effect.Uncurried (EffectFn1, mkEffectFn1)
 import Untagged.Union (type (|+|), asOneOf)
 import VSCode.Common (class VSCConvertible, disposeImpl, fromVSC, toVSC)
-import VSCode.Types (class Disposable)
+import VSCode.Types (class Disposable, class Registerable)
 
 data TreeView :: forall k. (k -> Type) -> k -> Type
 data TreeView f a
@@ -69,9 +67,6 @@ toTreeElement :: forall a. UndefinedOr a -> TreeElement a
 toTreeElement u = case fromUndefined u of
   Nothing -> Root
   Just x -> Child x
-
-class (Disposable t) <= Registerable t requirements | t -> requirements where
-  register :: requirements -> String -> Effect t
 
 instance registerableTreeView :: Registerable (TreeView Identity a) { children :: TreeElement a -> Array a, resolve :: a -> TreeItem } where
   register { children, resolve } id = _registerTreeView id (asOneOf $ children <<< toTreeElement) (asOneOf resolveAsVSC)

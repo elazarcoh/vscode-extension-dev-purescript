@@ -2,8 +2,7 @@ module Main
   ( activateImpl
   , deactivateImpl
   , treeView
-  )
-  where
+  ) where
 
 import Prelude
 
@@ -22,15 +21,14 @@ import Node.FS.Stats as FS
 import Node.Path (FilePath, concat)
 import VSCode.Commands (getCommands, registerCommand)
 import VSCode.Common (subscribeDisposable)
-import VSCode.TreeView (TreeElement(..), TreeItem(..), TreeItemCollapsibleState(..), TreeView, register)
-import VSCode.Types (ExtensionContext)
+import VSCode.TreeView (TreeElement(..), TreeItem(..), TreeItemCollapsibleState(..), TreeView)
+import VSCode.Types (ExtensionContext, register)
 import VSCode.Window (showInformationMessage)
 
 fooMessageCommand :: ExtensionContext -> Effect Unit
 fooMessageCommand ctx = do
   disposable <- registerCommand "test-purs.helloWorld" (\_ -> showInformationMessage "foo")
   subscribeDisposable ctx disposable
-
 
 treeViewChildren :: TreeElement TreeItem -> Array TreeItem
 treeViewChildren Root =
@@ -46,33 +44,32 @@ treeView :: { children :: TreeElement TreeItem -> Array TreeItem, resolve :: Tre
 treeView = { children: treeViewChildren, resolve: identity }
 
 type File = { directory :: FilePath, name :: String }
+
 treeViewAff :: { children :: TreeElement File -> Aff (Array File), resolve :: File -> Aff TreeItem }
 treeViewAff = { children: children, resolve: fileToItem }
   where
   root = "C:/elazar/private/vscode_extenstions/test-purs"
 
   fullPath :: File -> FilePath
-  fullPath { directory, name } = concat [directory, name]
-  
+  fullPath { directory, name } = concat [ directory, name ]
+
   readdir :: FilePath -> Aff (Array File)
-  readdir dir = (map <<< map) (\name -> { directory: dir, name: name }) $ FSA.readdir dir 
+  readdir dir = (map <<< map) (\name -> { directory: dir, name: name }) $ FSA.readdir dir
 
   children :: TreeElement File -> Aff (Array File)
   children Root = readdir root
   children (Child file) = do
     let fp = fullPath file
     stat <- FSA.stat fp
-    if FS.isDirectory stat
-      then readdir fp
-      else pure mempty
+    if FS.isDirectory stat then readdir fp
+    else pure mempty
 
   fileToItem :: File -> Aff TreeItem
   fileToItem file = do
     let fp = fullPath file
-    stat ← FSA.stat fp
-    if FS.isDirectory stat
-      then pure <<< TreeItem $ Open.coerce { label: file.name, collapsibleState: Collapsed }
-      else pure <<< TreeItem $ Open.coerce { label: file.name, collapsibleState: None }
+    stat <- FSA.stat fp
+    if FS.isDirectory stat then pure <<< TreeItem $ Open.coerce { label: file.name, collapsibleState: Collapsed }
+    else pure <<< TreeItem $ Open.coerce { label: file.name, collapsibleState: None }
 
 errorLogged :: forall a. Aff a -> Aff a
 errorLogged aff = do
