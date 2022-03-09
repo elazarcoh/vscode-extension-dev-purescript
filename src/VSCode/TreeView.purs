@@ -17,7 +17,7 @@ import Effect.Aff (Aff)
 import Effect.Uncurried (EffectFn1, mkEffectFn1)
 import Untagged.Union (type (|+|), asOneOf)
 import VSCode.Common (class VSCConvertible, disposeImpl, fromVSC, toVSC)
-import VSCode.Types (class Disposable, class Registerable)
+import VSCode.Types (class Disposable, class Register)
 
 data TreeView :: forall k. (k -> Type) -> k -> Type
 data TreeView f a
@@ -68,13 +68,13 @@ toTreeElement u = case fromUndefined u of
   Nothing -> Root
   Just x -> Child x
 
-instance registerableTreeView :: Registerable (TreeView Identity a) { children :: TreeElement a -> Array a, resolve :: a -> TreeItem } where
-  register { children, resolve } id = _registerTreeView id (asOneOf $ children <<< toTreeElement) (asOneOf resolveAsVSC)
+instance registerTreeView :: Register (TreeView Identity a) { children :: TreeElement a -> Array a, resolve :: a -> TreeItem } where
+  register id { children, resolve } = _registerTreeView id (asOneOf $ children <<< toTreeElement) (asOneOf resolveAsVSC)
     where
       resolveAsVSC :: a -> VSCTreeItem
       resolveAsVSC = toVSC <<< resolve
-else instance registerableTreeViewAff :: Registerable (TreeView Aff a) { children :: TreeElement a -> Aff (Array a), resolve :: a -> Aff TreeItem } where
-  register { children, resolve } id = _registerTreeView id (asOneOf $ mkEffectFn1 childredPromised) (asOneOf $ mkEffectFn1 resolvePromised)
+else instance registerTreeViewAff :: Register (TreeView Aff a) { children :: TreeElement a -> Aff (Array a), resolve :: a -> Aff TreeItem } where
+  register id { children, resolve } = _registerTreeView id (asOneOf $ mkEffectFn1 childredPromised) (asOneOf $ mkEffectFn1 resolvePromised)
     where
     childredPromised :: UndefinedOr a -> Effect (Promise (Array a))
     childredPromised i = fromAff $ (children <<< toTreeElement) i

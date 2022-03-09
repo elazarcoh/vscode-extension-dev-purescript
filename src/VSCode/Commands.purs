@@ -1,7 +1,6 @@
 module VSCode.Commands
   ( Command(..)
   , getCommands
-  , registerCommand
   ) where
 
 import Prelude
@@ -12,7 +11,7 @@ import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Foreign (Foreign)
 import VSCode.Common (disposeImpl)
-import VSCode.Types (class Disposable)
+import VSCode.Types (class Disposable, class Register)
 
 data Command
 
@@ -21,8 +20,9 @@ instance disposeCommand :: Disposable Command where
 
 foreign import _registerCommand :: String -> (Array Foreign -> Effect Unit) -> Effect Command
 
-registerCommand ∷ String → (Array Foreign → Effect Unit) → Effect Command
-registerCommand = _registerCommand
+
+instance registerCommand :: Register Command (Array Foreign → Effect Unit) where
+  register id act = _registerCommand id act
 
 foreign import _getCommands :: Effect (Promise (Array String))
 

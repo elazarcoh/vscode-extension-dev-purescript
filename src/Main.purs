@@ -8,6 +8,7 @@ import Prelude
 
 import Data.Array (filter)
 import Data.Either (Either(..))
+import Data.Identity (Identity)
 import Data.Maybe (Maybe(..))
 import Data.Undefined.NoProblem (toMaybe)
 import Data.Undefined.NoProblem.Open as Open
@@ -19,16 +20,11 @@ import Effect.Exception.Unsafe (unsafeThrowException)
 import Node.FS.Aff as FSA
 import Node.FS.Stats as FS
 import Node.Path (FilePath, concat)
-import VSCode.Commands (getCommands, registerCommand)
+import VSCode.Commands (Command, getCommands)
 import VSCode.Common (subscribeDisposable)
 import VSCode.TreeView (TreeElement(..), TreeItem(..), TreeItemCollapsibleState(..), TreeView)
 import VSCode.Types (ExtensionContext, register)
 import VSCode.Window (showInformationMessage)
-
-fooMessageCommand :: ExtensionContext -> Effect Unit
-fooMessageCommand ctx = do
-  disposable <- registerCommand "test-purs.helloWorld" (\_ -> showInformationMessage "foo")
-  subscribeDisposable ctx disposable
 
 treeViewChildren :: TreeElement TreeItem -> Array TreeItem
 treeViewChildren Root =
@@ -85,13 +81,13 @@ activateImpl ctx =
   launchAff_ $ errorLogged
     $ do
         Console.log "Activating..."
-        liftEffect $ (fooMessageCommand ctx)
+        liftEffect $ (register "test-purs.helloWorld" (\_ -> showInformationMessage "foo")  :: Effect Command) >>= subscribeDisposable ctx
         Console.log "Registered command"
         commands <- getCommands
         Console.log (show $ filter (eq "test-purs.helloWorld") commands)
         Console.log "Registering tree view..."
-        -- liftEffect $ (register treeView "nodeDependencies" :: Effect (TreeView Identity TreeItem)) >>= subscribeDisposable ctx
-        liftEffect $ (register treeViewAff "nodeDependencies" :: Effect (TreeView Aff File)) >>= subscribeDisposable ctx
+        liftEffect $ (register "nodeDependencies" treeView :: Effect (TreeView Identity TreeItem)) >>= subscribeDisposable ctx
+        -- liftEffect $ (register "nodeDependencies" treeViewAff  :: Effect (TreeView Aff File)) >>= subscribeDisposable ctx
         Console.log "TreeView registered"
         -- Console.log (show x)
         Console.log "printed"

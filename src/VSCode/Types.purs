@@ -3,7 +3,7 @@ module VSCode.Types
   , Uri
   , class Disposable
   , dispose
-  , class Registerable
+  , class Register
   , register
   ) where
 
@@ -14,8 +14,8 @@ import Effect (Effect)
 class Disposable a where
   dispose :: a -> Unit
 
-class (Disposable t) <= Registerable t requirements | t -> requirements where
-  register :: requirements -> String -> Effect t
+class (Disposable t) <= Register t requirements | t -> requirements where
+  register :: String -> requirements -> Effect t
 
 foreign import data ExtensionContext :: Type
 
