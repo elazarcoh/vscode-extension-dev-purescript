@@ -3,7 +3,9 @@ module VSCode.TreeView
   , TreeItem(..)
   , TreeItemCollapsibleState(..)
   , TreeView(..)
-  ) where
+  , makeTreeItem
+  )
+  where
 
 import Prelude
 
@@ -11,13 +13,14 @@ import Control.Promise (Promise, fromAff)
 import Data.Identity (Identity)
 import Data.Maybe (Maybe(..))
 import Data.Undefined.NoProblem (Opt, pseudoMap)
+import Data.Undefined.NoProblem.Open as Open
 import Data.UndefinedOr (UndefinedOr, fromUndefined)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Uncurried (EffectFn1, mkEffectFn1)
 import Untagged.Union (type (|+|), asOneOf)
 import VSCode.Common (class VSCConvertible, disposeImpl, fromVSC, toVSC)
-import VSCode.Types (class Disposable, class Register)
+import VSCode.Types (class Disposable, class Register, Uri)
 
 data TreeView :: forall k. (k -> Type) -> k -> Type
 data TreeView f a
@@ -42,11 +45,15 @@ instance vscodeConvertibleTreeItemCollapsibleState :: VSCConvertible TreeItemCol
 newtype TreeItem = TreeItem
   { label :: Opt String
   , collapsibleState :: Opt TreeItemCollapsibleState
+  , resourceUri :: Opt Uri
   }
+
+makeTreeItem = TreeItem <<< Open.coerce
 
 newtype VSCTreeItem = VSCTreeItem
   { label :: Opt String
   , collapsibleState :: Opt VSCTreeItemCollapsibleState
+  , resourceUri :: Opt Uri
   }
 
 instance treeItemVSCodeConvertible :: VSCConvertible TreeItem VSCTreeItem where

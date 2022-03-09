@@ -11,7 +11,6 @@ import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.Maybe (Maybe(..))
 import Data.Undefined.NoProblem (toMaybe)
-import Data.Undefined.NoProblem.Open as Open
 import Effect (Effect)
 import Effect.Aff (Aff, attempt, launchAff_)
 import Effect.Class (liftEffect)
@@ -22,17 +21,18 @@ import Node.FS.Stats as FS
 import Node.Path (FilePath, concat)
 import VSCode.Commands (Command, getCommands)
 import VSCode.Common (subscribeDisposable)
-import VSCode.TreeView (TreeElement(..), TreeItem(..), TreeItemCollapsibleState(..), TreeView)
+import VSCode.TreeView (TreeElement(..), TreeItem(..), TreeItemCollapsibleState(..), TreeView, makeTreeItem)
 import VSCode.Types (ExtensionContext, register)
+import VSCode.Uri as Uri
 import VSCode.Window (showInformationMessage)
 
 treeViewChildren :: TreeElement TreeItem -> Array TreeItem
 treeViewChildren Root =
-  [ TreeItem $ Open.coerce { label: "Foo", collapsibleState: Expanded }
-  , TreeItem $ Open.coerce { label: "Foo2", collapsibleState: Collapsed }
+  [ makeTreeItem { label: "Foo", collapsibleState: Expanded }
+  , makeTreeItem { label: "Foo2", collapsibleState: Collapsed }
   ]
 treeViewChildren (Child (TreeItem parent)) = case toMaybe $ parent.label of
-  Just "Foo" -> [ TreeItem $ Open.coerce { label: "Bar", collapsibleState: None } ]
+  Just "Foo" -> [ makeTreeItem { label: "Bar", collapsibleState: None } ]
   Just "Bar" -> mempty
   _ -> mempty
 
@@ -64,8 +64,8 @@ treeViewAff = { children: children, resolve: fileToItem }
   fileToItem file = do
     let fp = fullPath file
     stat <- FSA.stat fp
-    if FS.isDirectory stat then pure <<< TreeItem $ Open.coerce { label: file.name, collapsibleState: Collapsed }
-    else pure <<< TreeItem $ Open.coerce { label: file.name, collapsibleState: None }
+    if FS.isDirectory stat then pure $ makeTreeItem { resourceUri: Uri.fromFile fp, collapsibleState: Collapsed }
+    else pure $ makeTreeItem { resourceUri: Uri.fromFile fp, collapsibleState: None }
 
 errorLogged :: forall a. Aff a -> Aff a
 errorLogged aff = do
@@ -81,13 +81,13 @@ activateImpl ctx =
   launchAff_ $ errorLogged
     $ do
         Console.log "Activating..."
-        liftEffect $ (register "test-purs.helloWorld" (\_ -> showInformationMessage "foo")  :: Effect Command) >>= subscribeDisposable ctx
+        liftEffect $ (register "test-purs.helloWorld" (\_ -> showInformationMessage "foo") :: Effect Command) >>= subscribeDisposable ctx
         Console.log "Registered command"
         commands <- getCommands
         Console.log (show $ filter (eq "test-purs.helloWorld") commands)
         Console.log "Registering tree view..."
-        liftEffect $ (register "nodeDependencies" treeView :: Effect (TreeView Identity TreeItem)) >>= subscribeDisposable ctx
-        -- liftEffect $ (register "nodeDependencies" treeViewAff  :: Effect (TreeView Aff File)) >>= subscribeDisposable ctx
+        -- liftEffect $ (register "nodeDependencies" treeView :: Effect (TreeView Identity TreeItem)) >>= subscribeDisposable ctx
+        liftEffect $ (register "nodeDependencies" treeViewAff :: Effect (TreeView Aff File)) >>= subscribeDisposable ctx
         Console.log "TreeView registered"
         -- Console.log (show x)
         Console.log "printed"
