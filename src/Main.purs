@@ -2,24 +2,33 @@ module Main
   ( activateImpl
   , deactivateImpl
   , treeView
-  ) where
+  )
+  where
 
 import Prelude
 
-import Data.Array (filter)
+import Control.Promise (Promise, toAff)
+import Data.Array (filter, head, toUnfoldable, (!!))
 import Data.Either (Either(..))
 import Data.Identity (Identity)
-import Data.Maybe (Maybe(..))
-import Data.Undefined.NoProblem (toMaybe)
+import Data.List (List(..))
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.String (joinWith)
+import Data.Undefined.NoProblem (toMaybe, undefined)
 import Effect (Effect)
-import Effect.Aff (Aff, attempt, launchAff_)
+import Effect.Aff (Aff, attempt, forkAff, joinFiber, launchAff, launchAff_, supervise)
+import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
-import Effect.Class.Console as Console
+import Effect.Console as Console
 import Effect.Exception.Unsafe (unsafeThrowException)
+import Foreign (Foreign, unsafeFromForeign, unsafeToForeign)
+import Literals.Undefined (Undefined)
 import Node.FS.Aff as FSA
 import Node.FS.Stats as FS
 import Node.Path (FilePath, concat)
-import VSCode.Commands (Command, getCommands)
+import Unsafe.Coerce (unsafeCoerce)
+import Untagged.Union (UndefinedOr, defined, fromUndefinedOr, maybeToUor, uorToMaybe)
+import VSCode.Commands (Command, executeCommand, getCommands)
 import VSCode.Common (subscribeDisposable)
 import VSCode.TreeView (TreeElement(..), TreeItem(..), TreeItemCollapsibleState(..), TreeView, makeTreeItem)
 import VSCode.Types (ExtensionContext, register)
@@ -72,25 +81,40 @@ errorLogged aff = do
   x <- attempt aff
   case x of
     Left e -> do
-      Console.log $ "Error: " <> show e
+      liftEffect $ Console.log $ "Error: " <> show e
       unsafeThrowException e
     Right v -> pure v
 
+showWelcome :: String -> Aff String
+showWelcome msg = do
+  (showInformationMessage msg)
+  pure msg
+
 activateImpl :: ExtensionContext -> Effect Unit
 activateImpl ctx =
-  launchAff_ $ errorLogged
-    $ do
-        Console.log "Activating..."
-        liftEffect $ (register "test-purs.helloWorld" (\_ -> showInformationMessage "foo") :: Effect Command) >>= subscribeDisposable ctx
-        Console.log "Registered command"
-        commands <- getCommands
-        Console.log (show $ filter (eq "test-purs.helloWorld") commands)
-        Console.log "Registering tree view..."
-        -- liftEffect $ (register "nodeDependencies" treeView :: Effect (TreeView Identity TreeItem)) >>= subscribeDisposable ctx
-        liftEffect $ (register "nodeDependencies" treeViewAff :: Effect (TreeView Aff File)) >>= subscribeDisposable ctx
-        Console.log "TreeView registered"
-        -- Console.log (show x)
-        Console.log "printed"
+  do
+    Console.log "Activating..." 
+    (register "test-purs.helloWorld" (\msg -> showWelcome $ fromUndefinedOr "Default" (unsafeFromForeign msg)) :: Effect Command) >>= subscribeDisposable ctx
+
+    Console.log "Registered command"
+    launchAff_ do
+      commands <- getCommands
+      liftEffect $ Console.log (show $ filter (eq "test-purs.helloWorld") commands)
+
+    -- Console.log "Registering tree view..."
+    -- (register "nodeDependencies" treeView :: Effect (TreeView Identity TreeItem)) >>= subscribeDisposable ctx
+    -- (register "nodeDependencies" treeViewAff :: Effect (TreeView Aff File)) >>= subscribeDisposable ctx
+    -- Console.log "TreeView registered"
+
+    launchAff_  $ errorLogged $ supervise do
+      fb1 <- forkAff $ executeCommand "test-purs.helloWorld" $ [unsafeToForeign "MyMessage"]
+      fb2 <- forkAff $ executeCommand "test-purs.helloWorld" $ []
+      z <- joinFiber fb1 :: Aff String
+      liftEffect $ Console.log $ "fb1: " <> show z
+      pure unit
+    
+    
+    Console.log "activated"
 
 deactivateImpl :: Effect Unit
 deactivateImpl = do

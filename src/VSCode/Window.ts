@@ -1,4 +1,4 @@
 import * as vscode from "vscode";
-import { curry } from '../utils';
+import { inputTraced } from "../utils";
 
-export const showInformationMessage = curry(vscode.window.showInformationMessage);
+export const _showInformationMessage = msg => () => vscode.window.showInformationMessage(msg);
