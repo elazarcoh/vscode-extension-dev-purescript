@@ -86,10 +86,8 @@ errorLogged aff = do
       unsafeThrowException e
     Right v -> pure v
 
-showWelcome :: String -> Aff String
-showWelcome msg = do
-  showInformationMessage' msg [ messageItem { title: "Foo" } ]
-  pure msg
+showWelcome :: String -> Aff MessageItem
+showWelcome msg = showInformationMessage' msg [ messageItem { title: "Foo" } ]
 
 activateImpl :: ExtensionContext -> Effect Unit
 activateImpl ctx =
@@ -110,7 +108,7 @@ activateImpl ctx =
     launchAff_  $ errorLogged $ supervise do
       fb1 <- forkAff $ executeCommand "test-purs.helloWorld" $ [unsafeToForeign "MyMessage"]
       -- fb2 <- forkAff $ executeCommand "test-purs.helloWorld" $ []
-      z <- joinFiber fb1 :: Aff String
+      MessageItem z <- joinFiber fb1 :: Aff MessageItem
       liftEffect $ Console.log $ "fb1: " <> show z
       pure unit
     

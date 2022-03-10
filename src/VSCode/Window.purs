@@ -16,12 +16,12 @@ import Effect.Aff (Aff)
 
 newtype MessageItem = MessageItem { title :: String, isCloseAffordance :: Opt Boolean }
 
-foreign import _showInformationMessage :: forall a. String -> Array a -> Effect (Promise Unit)
+foreign import _showInformationMessage :: forall a. String -> Array a -> Effect (Promise a)
 
 showInformationMessage :: String -> Aff Unit
 showInformationMessage msg = toAffE $ _showInformationMessage msg []
 
-showInformationMessage' :: String -> Array MessageItem -> Aff Unit
+showInformationMessage' :: String -> Array MessageItem -> Aff MessageItem
 showInformationMessage' msg items = toAffE $ _showInformationMessage msg items
 
 messageItem = MessageItem <<< Open.coerce
