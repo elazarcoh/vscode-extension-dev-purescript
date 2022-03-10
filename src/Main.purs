@@ -15,6 +15,7 @@ import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.String (joinWith)
 import Data.Undefined.NoProblem (toMaybe, undefined)
+import Data.Undefined.NoProblem.Open as Open
 import Effect (Effect)
 import Effect.Aff (Aff, attempt, forkAff, joinFiber, launchAff, launchAff_, supervise)
 import Effect.Aff.Class (liftAff)
@@ -33,7 +34,7 @@ import VSCode.Common (subscribeDisposable)
 import VSCode.TreeView (TreeElement(..), TreeItem(..), TreeItemCollapsibleState(..), TreeView, makeTreeItem)
 import VSCode.Types (ExtensionContext, register)
 import VSCode.Uri as Uri
-import VSCode.Window (showInformationMessage)
+import VSCode.Window (MessageItem(..), messageItem, showInformationMessage, showInformationMessage')
 
 treeViewChildren :: TreeElement TreeItem -> Array TreeItem
 treeViewChildren Root =
@@ -87,7 +88,7 @@ errorLogged aff = do
 
 showWelcome :: String -> Aff String
 showWelcome msg = do
-  (showInformationMessage msg)
+  showInformationMessage' msg [ messageItem { title: "Foo" } ]
   pure msg
 
 activateImpl :: ExtensionContext -> Effect Unit
@@ -108,11 +109,10 @@ activateImpl ctx =
 
     launchAff_  $ errorLogged $ supervise do
       fb1 <- forkAff $ executeCommand "test-purs.helloWorld" $ [unsafeToForeign "MyMessage"]
-      fb2 <- forkAff $ executeCommand "test-purs.helloWorld" $ []
+      -- fb2 <- forkAff $ executeCommand "test-purs.helloWorld" $ []
       z <- joinFiber fb1 :: Aff String
       liftEffect $ Console.log $ "fb1: " <> show z
       pure unit
-    
     
     Console.log "activated"
 

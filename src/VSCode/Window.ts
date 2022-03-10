@@ -1,4 +1,4 @@
 import * as vscode from "vscode";
-import { inputTraced } from "../utils";
 
-export const _showInformationMessage = msg => () => vscode.window.showInformationMessage(msg);
+
+export const _showInformationMessage = msg => items => () => vscode.window.showInformationMessage(msg, undefined, ...items);

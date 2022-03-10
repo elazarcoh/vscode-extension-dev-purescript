@@ -1,17 +1,27 @@
 module VSCode.Window
-  ( showInformationMessage
-  ) where
+  ( MessageItem(..)
+  , messageItem
+  , showInformationMessage
+  , showInformationMessage'
+  )
+  where
 
 import Prelude
 
 import Control.Promise (Promise, toAffE)
+import Data.Undefined.NoProblem (Opt)
+import Data.Undefined.NoProblem.Open as Open
 import Effect (Effect)
-import Effect.Aff (Aff, runAff)
-import Effect.Aff.Compat (EffectFnAff)
-import Effect.Uncurried (EffectFn1, runEffectFn1)
+import Effect.Aff (Aff)
 
-foreign import _showInformationMessage :: String -> Effect (Promise Unit)
+newtype MessageItem = MessageItem { title :: String, isCloseAffordance :: Opt Boolean }
+
+foreign import _showInformationMessage :: forall a. String -> Array a -> Effect (Promise Unit)
 
 showInformationMessage :: String -> Aff Unit
-showInformationMessage msg = toAffE $ _showInformationMessage msg
+showInformationMessage msg = toAffE $ _showInformationMessage msg []
 
+showInformationMessage' :: String -> Array MessageItem -> Aff Unit
+showInformationMessage' msg items = toAffE $ _showInformationMessage msg items
+
+messageItem = MessageItem <<< Open.coerce
