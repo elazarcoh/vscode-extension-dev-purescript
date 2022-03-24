@@ -1,9 +1,8 @@
-module Main
+module Extension
   ( activateImpl
   , deactivateImpl
   , treeView
-  )
-  where
+  ) where
 
 import Prelude
 
@@ -87,10 +86,9 @@ errorLogged aff = do
     Right v -> pure v
 
 showWelcome :: String -> Aff Unit
-showWelcome msg = do 
+showWelcome msg = do
   MessageItem selection <- showInformationMessage' msg [ messageItem { title: "Foo" } ]
   liftEffect $ Console.log selection.title
-
 
 activateImpl :: ExtensionContext -> Effect Unit
 activateImpl ctx =
@@ -110,13 +108,13 @@ activateImpl ctx =
 
     {- execute command example -}
     -- launchAff_ $ errorLogged $ supervise do
-      -- fb1 <- forkAff $ executeCommand "test-purs.helloWorld" $ [ unsafeToForeign "MyMessage" ]
-      -- fb2 <- forkAff $ executeCommand "test-purs.helloWorld" $ []
-      -- MessageItem z <- joinFiber fb1 :: Aff MessageItem
-      -- liftEffect $ Console.log $ "fb1: " <> show z
-      -- MessageItem z2 <- joinFiber fb2 :: Aff MessageItem
-      -- liftEffect $ Console.log $ "fb2: " <> show z2
-      -- pure unit
+    -- fb1 <- forkAff $ executeCommand "test-purs.helloWorld" $ [ unsafeToForeign "MyMessage" ]
+    -- fb2 <- forkAff $ executeCommand "test-purs.helloWorld" $ []
+    -- MessageItem z <- joinFiber fb1 :: Aff MessageItem
+    -- liftEffect $ Console.log $ "fb1: " <> show z
+    -- MessageItem z2 <- joinFiber fb2 :: Aff MessageItem
+    -- liftEffect $ Console.log $ "fb2: " <> show z2
+    -- pure unit
 
     Console.log "activated"
 

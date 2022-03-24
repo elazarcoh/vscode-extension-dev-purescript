@@ -4,7 +4,7 @@ const webpack = require('webpack-stream');
 const ts = require('gulp-typescript');
 const shell = require('gulp-shell');
 
-const jsFiles = ['src/extension.js', 'src/utils.js'];
+const jsFiles = ['src/extensionEntrypoint.js', 'src/utils.js'];
 
 gulp.task('purescript', shell.task('spago build'));
 gulp.task('typescript', function () {
