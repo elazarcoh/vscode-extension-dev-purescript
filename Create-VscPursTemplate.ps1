@@ -74,4 +74,6 @@ Write-Host "Updating $gitignore with '$toIgnore'"
 $gitignoreContent = ($gitignoreContent -split "`n") + $toIgnore | Select-Object -Unique | Join-String -Separator "`n"
 Set-Content -Path $gitignore -Value $gitignoreContent
 
+# Link the .spago directory to the project directory, to save space.
+New-Item -Type SymbolicLink -Target (Join-Path $scriptDir .spago) -Path (Join-Path $ProjectDir ".spago") -Force
 
