@@ -47,6 +47,7 @@ gulp.task(
     gulp.series([
         'build-dev',
         function watch() {
+            process.stdout.write('\033c');
             gulp.watch('./src/**/*.purs', gulp.series('purescript'));
             gulp.watch(
                 './src/**/*.ts',
