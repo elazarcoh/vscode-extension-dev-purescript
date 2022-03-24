@@ -60,4 +60,18 @@ $devPackages = @(
 
 AddNPMPackageNoInstall -PackageName $devPackages -Dev
 
+# update gitignore
+$gitignore = Join-Path $ProjectDir ".gitignore"
+$gitignoreContent = Get-Content $gitignore
+
+$toIgnore = @(
+    "output"
+    "src/VSCode"
+    "dist"
+    ".spago"
+) 
+Write-Host "Updating $gitignore with '$toIgnore'"
+$gitignoreContent = ($gitignoreContent -split "`n") + $toIgnore | Select-Object -Unique | Join-String -Separator "`n"
+Set-Content -Path $gitignore -Value $gitignoreContent
+
 
