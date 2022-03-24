@@ -25,13 +25,13 @@ import VSCode.Types (class Disposable, class Register, Uri)
 data TreeView :: forall k. (k -> Type) -> k -> Type
 data TreeView f a
 
-instance disposeTreeView :: Disposable (TreeView f a) where
+instance Disposable (TreeView f a) where
   dispose = disposeImpl
 
 data TreeItemCollapsibleState = Collapsed | Expanded | None
 type VSCTreeItemCollapsibleState = Int
 
-instance vscodeConvertibleTreeItemCollapsibleState :: VSCConvertible TreeItemCollapsibleState VSCTreeItemCollapsibleState where
+instance VSCConvertible TreeItemCollapsibleState VSCTreeItemCollapsibleState where
   toVSC c = case c of
     Collapsed -> 1
     Expanded -> 2
@@ -56,7 +56,7 @@ newtype VSCTreeItem = VSCTreeItem
   , resourceUri :: Opt Uri
   }
 
-instance treeItemVSCodeConvertible :: VSCConvertible TreeItem VSCTreeItem where
+instance VSCConvertible TreeItem VSCTreeItem where
   toVSC (TreeItem c) = VSCTreeItem $ c { collapsibleState = pseudoMap toVSC c.collapsibleState }
   fromVSC (VSCTreeItem c) = TreeItem $ c { collapsibleState = pseudoMap fromVSC c.collapsibleState }
 
@@ -75,12 +75,12 @@ toTreeElement u = case fromUndefined u of
   Nothing -> Root
   Just x -> Child x
 
-instance registerTreeView :: Register (TreeView Identity a) { children :: TreeElement a -> Array a, resolve :: a -> TreeItem } where
+instance Register (TreeView Identity a) { children :: TreeElement a -> Array a, resolve :: a -> TreeItem } where
   register id { children, resolve } = _registerTreeView id (asOneOf $ children <<< toTreeElement) (asOneOf resolveAsVSC)
     where
       resolveAsVSC :: a -> VSCTreeItem
       resolveAsVSC = toVSC <<< resolve
-else instance registerTreeViewAff :: Register (TreeView Aff a) { children :: TreeElement a -> Aff (Array a), resolve :: a -> Aff TreeItem } where
+else instance Register (TreeView Aff a) { children :: TreeElement a -> Aff (Array a), resolve :: a -> Aff TreeItem } where
   register id { children, resolve } = _registerTreeView id (asOneOf $ mkEffectFn1 childredPromised) (asOneOf $ mkEffectFn1 resolvePromised)
     where
     childredPromised :: UndefinedOr a -> Effect (Promise (Array a))

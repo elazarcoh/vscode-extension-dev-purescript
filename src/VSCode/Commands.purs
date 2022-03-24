@@ -19,13 +19,13 @@ import VSCode.Types (class Disposable, class Register)
 
 data Command
 
-instance disposeCommand :: Disposable Command where
+instance Disposable Command where
   dispose = disposeImpl
 
 foreign import _registerCommand :: forall a. String -> EffectFn1 (Foreign) (Promise a) -> Effect Command
 
 
-instance registerCommand :: Register Command (Foreign → Aff a) where
+instance Register Command (Foreign → Aff a) where
   register id act = _registerCommand id (mkEffectFn1 $ fromAff <<< act)
 
 foreign import _getCommands :: Effect (Promise (Array String))
