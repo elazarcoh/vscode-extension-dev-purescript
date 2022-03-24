@@ -8,5 +8,6 @@
     ],
     "cSpell.words": [
         "forall"
-    ]
+    ],
+    "purescript.formatter": "purs-tidy"
 }

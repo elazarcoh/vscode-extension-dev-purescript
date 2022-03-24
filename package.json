@@ -31,10 +31,8 @@
 	},
 	"scripts": {
 		"lint": "eslint .",
-		"build": "tsc && spago build",
-		"tsc-watch": "tsc --watch",
-		"purs-watch": "spago build --watch --clear-screen",
-		"watch": "gulp",
+		"build": "gulp build-dev",
+		"watch": "gulp watch",
 		"pretest": "yarn run lint",
 		"test": "node ./test/runTest.js"
 	},

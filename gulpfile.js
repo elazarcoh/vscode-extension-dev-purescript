@@ -40,15 +40,20 @@ gulp.task('webpacker', function () {
         .pipe(gulp.dest('dist/'));
 });
 
-gulp.task('build-dev', gulp.series('typescript', 'purescript'));
-
-gulp.task('watch', function () {
-    gulp.watch('./src/**/*.purs', gulp.series('purescript'));
-    gulp.watch('./src/**/*.ts', gulp.series(['typescript', 'purescript']));
-    gulp.watch(jsFiles, gulp.series('copy-js'));
-});
+gulp.task('build-dev', gulp.series(['typescript', 'copy-js', 'purescript']));
 
 gulp.task(
-    'default',
-    gulp.series(['typescript', 'copy-js', 'purescript', 'watch'])
+    'watch',
+    gulp.series([
+        'build-dev',
+        function watch() {
+            gulp.watch('./src/**/*.purs', gulp.series('purescript'));
+            gulp.watch(
+                './src/**/*.ts',
+                gulp.series(['typescript', 'purescript'])
+            );
+            gulp.watch(jsFiles, gulp.series('copy-js'));
+        },
+    ])
 );
+gulp.task('default', gulp.series('watch'));
