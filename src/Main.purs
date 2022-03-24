@@ -86,13 +86,16 @@ errorLogged aff = do
       unsafeThrowException e
     Right v -> pure v
 
-showWelcome :: String -> Aff MessageItem
-showWelcome msg = showInformationMessage' msg [ messageItem { title: "Foo" } ]
+showWelcome :: String -> Aff Unit
+showWelcome msg = do 
+  MessageItem selection <- showInformationMessage' msg [ messageItem { title: "Foo" } ]
+  liftEffect $ Console.log selection.title
+
 
 activateImpl :: ExtensionContext -> Effect Unit
 activateImpl ctx =
   do
-    Console.log "Activating..." 
+    Console.log "Activating..."
     (register "test-purs.helloWorld" (\msg -> showWelcome $ fromUndefinedOr "Default" (unsafeFromForeign msg)) :: Effect Command) >>= subscribeDisposable ctx
 
     Console.log "Registered command"
@@ -100,18 +103,21 @@ activateImpl ctx =
       commands <- getCommands
       liftEffect $ Console.log (show $ filter (eq "test-purs.helloWorld") commands)
 
-    -- Console.log "Registering tree view..."
+    Console.log "Registering tree view..."
     -- (register "nodeDependencies" treeView :: Effect (TreeView Identity TreeItem)) >>= subscribeDisposable ctx
-    -- (register "nodeDependencies" treeViewAff :: Effect (TreeView Aff File)) >>= subscribeDisposable ctx
-    -- Console.log "TreeView registered"
+    (register "nodeDependencies" treeViewAff :: Effect (TreeView Aff File)) >>= subscribeDisposable ctx
+    Console.log "TreeView registered"
 
-    launchAff_  $ errorLogged $ supervise do
-      fb1 <- forkAff $ executeCommand "test-purs.helloWorld" $ [unsafeToForeign "MyMessage"]
+    {- execute command example -}
+    -- launchAff_ $ errorLogged $ supervise do
+      -- fb1 <- forkAff $ executeCommand "test-purs.helloWorld" $ [ unsafeToForeign "MyMessage" ]
       -- fb2 <- forkAff $ executeCommand "test-purs.helloWorld" $ []
-      MessageItem z <- joinFiber fb1 :: Aff MessageItem
-      liftEffect $ Console.log $ "fb1: " <> show z
-      pure unit
-    
+      -- MessageItem z <- joinFiber fb1 :: Aff MessageItem
+      -- liftEffect $ Console.log $ "fb1: " <> show z
+      -- MessageItem z2 <- joinFiber fb2 :: Aff MessageItem
+      -- liftEffect $ Console.log $ "fb2: " <> show z2
+      -- pure unit
+
     Console.log "activated"
 
 deactivateImpl :: Effect Unit
