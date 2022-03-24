@@ -1,10 +1,13 @@
 module VSCode.Common
-  ( class VSCConvertible
-  , toVSC
-  , fromVSC
+  ( class FromVSC
+  , class ToVSC
+  , class VSCConvertible
   , disposeImpl
+  , fromVSC
   , subscribeDisposable
-  ) where
+  , toVSC
+  )
+  where
 
 import Prelude
 
@@ -14,6 +17,10 @@ import VSCode.Types (class Disposable, ExtensionContext)
 foreign import disposeImpl :: forall a. a -> Unit
 foreign import subscribeDisposable :: forall a. Disposable a => ExtensionContext -> a -> Effect Unit
 
-class VSCConvertible a b where
+class ToVSC a b | a -> b, b -> a where
   toVSC :: a -> b
+
+class FromVSC a b | a -> b, b -> a where
   fromVSC :: b -> a
+
+class (ToVSC a b, FromVSC a b) <= VSCConvertible a b 
