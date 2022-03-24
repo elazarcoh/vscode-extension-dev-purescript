@@ -21,13 +21,19 @@ to generate this file without the comments in this block.
   , "literals"
   , "node-fs"
   , "node-fs-aff"
-  , "options"
   , "prelude"
   , "psci-support"
-  , "safe-coerce"
   , "undefined-is-not-a-problem"
   , "undefined-or"
   , "untagged-union"
+  , "either"
+  , "exceptions"
+  , "identity"
+  , "lists"
+  , "maybe"
+  , "node-path"
+  , "strings"
+  , "unsafe-coerce"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
