@@ -9,8 +9,7 @@ const jsFiles = ['src/extension.js', 'src/utils.js'];
 gulp.task('purescript', shell.task('spago build'));
 gulp.task('typescript', function () {
     var tsProject = ts.createProject('tsconfig.json');
-    return gulp
-        .src('src/**/*.ts')
+    return tsProject.src()
         .pipe(tsProject())
         .pipe(
             gulp.dest(function (file) {
