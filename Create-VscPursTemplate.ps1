@@ -5,6 +5,10 @@ param (
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+# Source functions
+. (Join-Path $scriptDir "Merge-Json.ps1")
+
+
 # Create src directory if it doesn't exist
 if (!(Test-Path -Path (Join-Path $ProjectDir "src"))) {
     New-Item -ItemType Directory -Force -Path $ProjectDir -Name src
@@ -12,10 +16,12 @@ if (!(Test-Path -Path (Join-Path $ProjectDir "src"))) {
 
 # Copy base files to the project directory
 $templateDir = Join-Path $scriptDir "template"
+$toCopyTemplateDir = Join-Path $templateDir "to-copy"
 
-Get-ChildItem -Path $templateDir -File -Recurse | ForEach-Object {
+if($false) {
+Get-ChildItem -Path $toCopyTemplateDir -File -Recurse | ForEach-Object {
     $file = $_
-    $relative = [System.IO.Path]::GetRelativePath($templateDir, $file)
+    $relative = [System.IO.Path]::GetRelativePath($toCopyTemplateDir, $file)
     $dest = Join-Path $ProjectDir $relative
     if (!(Test-Path -Path $dest)) {
         Write-Host "Copying $file to $dest"
@@ -36,6 +42,28 @@ $filesToLink | ForEach-Object {
     Write-Host "Linking $file"
     New-Item -ItemType SymbolicLink -Path $dest -Target $file -Force
 }
+
+}
+# JSON files to merge
+$toMergeTemplateDir = Join-Path $templateDir "to-merge"
+Get-ChildItem -Path $toMergeTemplateDir -File -Recurse | ForEach-Object {
+    $file = $_
+    $relative = [System.IO.Path]::GetRelativePath($toMergeTemplateDir, $file)
+    $dest = Join-Path $ProjectDir $relative
+    if (!(Test-Path -Path $dest)) {
+        # Write-Host "Copying $file to $dest"
+        # New-Item -ItemType Directory -Path (Split-Path $dest -Parent) -Force
+        # Copy-Item $file $dest -Force -Recurse
+    }
+    else {
+        Write-Host "Merging $file to $dest"
+        $merged = Merge-JsonFiles $dest $file
+        Set-Content -Path $dest -Value $merged
+    }
+}
+
+exit
+Write-Host "Done"
 
 function AddNPMPackageNoInstall {
     param (
